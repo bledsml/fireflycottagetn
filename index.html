@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<!--
+  Purpose: Direct booking marketing site for Meredith's Smoky Mountain Airbnb, with embedded Hospitable booking widget and live availability calendar.
+  Date: 06132026
+  Client: Internal (Pigeon Forge STR)
+  Tags: direct-booking, airbnb, hospitable, ical, vacation-rental, landing-page
+  Summary: Single-file responsive site. All property-specific values live in the CONFIG block near the bottom. Booking + payment + two-way Airbnb sync are handled by the embedded Hospitable widget; the availability calendar reads booked dates from the Netlify iCal function.
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Firefly Cottage · Smoky Mountain Cabin in Pigeon Forge, TN</title>
+<meta name="description" content="Book Firefly Cottage directly and save. A charming Smoky Mountain cottage in Pigeon Forge, TN with a private hot tub, mountain setting, and self check-in. Skip the booking fees." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --forest:#2c3d30;
+    --moss:#566a52;
+    --bark:#7a5a3c;
+    --amber:#b9803c;
+    --gold:#c79a4e;
+    --cream:#f7f2e9;
+    --sand:#ece3d3;
+    --ink:#262019;
+    --muted:#6f675b;
+    --white:#ffffff;
+    --shadow:0 18px 50px -20px rgba(38,32,25,.45);
+    --radius:18px;
+    --maxw:1180px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:"Inter",system-ui,sans-serif;
+    color:var(--ink);
+    background:var(--cream);
+    line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  h1,h2,h3,.serif{font-family:"Fraunces",Georgia,serif;font-weight:500;line-height:1.1;letter-spacing:-.01em}
+  img{display:block;max-width:100%}
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+  .eyebrow{
+    text-transform:uppercase;letter-spacing:.22em;font-size:.72rem;font-weight:600;
+    color:var(--amber);margin-bottom:14px;
+  }
+  .btn{
+    display:inline-flex;align-items:center;gap:9px;cursor:pointer;border:none;
+    font-family:"Inter",sans-serif;font-weight:600;font-size:.95rem;
+    padding:15px 30px;border-radius:100px;transition:.25s ease;letter-spacing:.01em;
+  }
+  .btn-primary{background:var(--forest);color:var(--cream)}
+  .btn-primary:hover{background:#1f2c23;transform:translateY(-2px);box-shadow:var(--shadow)}
+  .btn-gold{background:var(--gold);color:var(--ink)}
+  .btn-gold:hover{background:var(--amber);color:var(--white);transform:translateY(-2px);box-shadow:var(--shadow)}
+  .btn-ghost{background:transparent;color:var(--cream);border:1.5px solid rgba(247,242,233,.6)}
+  .btn-ghost:hover{background:rgba(247,242,233,.12);border-color:var(--cream)}
+
+  /* NAV */
+  nav{
+    position:fixed;top:0;left:0;right:0;z-index:50;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:20px 32px;transition:.3s ease;
+  }
+  nav.scrolled{background:rgba(247,242,233,.92);backdrop-filter:blur(12px);padding:14px 32px;box-shadow:0 1px 0 rgba(38,32,25,.08)}
+  .brand{font-family:"Fraunces",serif;font-size:1.35rem;font-weight:600;color:var(--cream);transition:color .3s}
+  nav.scrolled .brand{color:var(--forest)}
+  .nav-links{display:flex;align-items:center;gap:30px}
+  .nav-links a{font-size:.9rem;font-weight:500;color:rgba(247,242,233,.92);transition:color .3s}
+  nav.scrolled .nav-links a{color:var(--ink)}
+  .nav-links a:hover{color:var(--gold)}
+  .nav-links .btn{padding:11px 24px;font-size:.88rem}
+  nav.scrolled .nav-links a.navbook{color:var(--cream)}
+  .nav-toggle{display:none;background:none;border:none;cursor:pointer;flex-direction:column;gap:5px}
+  .nav-toggle span{width:26px;height:2px;background:var(--cream);transition:.3s}
+  nav.scrolled .nav-toggle span{background:var(--forest)}
+
+  /* HERO */
+  header.hero{position:relative;height:100vh;min-height:640px;display:flex;align-items:center;color:var(--cream);overflow:hidden}
+  .hero-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
+  .hero-bg-fallback{position:absolute;inset:0;z-index:-1;background:linear-gradient(160deg,#3a4f3c 0%,#243024 55%,#1a2018 100%)}
+  .hero::after{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(20,26,18,.45) 0%,rgba(20,26,18,.18) 42%,rgba(20,26,18,.78) 100%),linear-gradient(100deg,rgba(20,26,18,.72) 0%,rgba(20,26,18,.5) 34%,rgba(20,26,18,.12) 62%,rgba(20,26,18,0) 100%)}
+  .hero-content{position:relative;z-index:2;max-width:var(--maxw);margin:0 auto;padding:0 24px;width:100%}
+  .hero-content .eyebrow{color:var(--gold);text-shadow:0 1px 14px rgba(0,0,0,.6)}
+  .hero h1{font-size:clamp(2.6rem,6.5vw,5rem);max-width:14ch;margin-bottom:18px;text-shadow:0 2px 30px rgba(0,0,0,.45)}
+  .hero p.lede{font-size:clamp(1.05rem,2vw,1.3rem);max-width:46ch;margin-bottom:34px;color:rgba(247,242,233,.96);text-shadow:0 1px 16px rgba(0,0,0,.55)}
+  .hero-cta{display:flex;gap:14px;flex-wrap:wrap}
+  .hero-meta{position:absolute;bottom:34px;left:0;right:0;z-index:2}
+  .hero-meta .wrap{display:flex;gap:30px;flex-wrap:wrap;font-size:.9rem;color:rgba(247,242,233,.95);text-shadow:0 1px 12px rgba(0,0,0,.6)}
+  .hero-meta b{font-family:"Fraunces",serif;font-size:1.15rem;font-weight:600;color:var(--cream);margin-right:6px}
+
+  /* TRUST BAR */
+  .trust{background:var(--forest);color:var(--cream);padding:22px 0}
+  .trust .wrap{display:flex;align-items:center;justify-content:center;gap:46px;flex-wrap:wrap;text-align:center}
+  .trust .item{display:flex;align-items:center;gap:10px;font-size:.92rem}
+  .trust .item svg{width:20px;height:20px;flex-shrink:0;stroke:var(--gold)}
+  .stars{color:var(--gold);letter-spacing:2px}
+
+  /* SECTION SHELL */
+  section{padding:100px 0}
+  .section-head{max-width:640px;margin:0 auto 56px;text-align:center}
+  .section-head h2{font-size:clamp(2rem,4vw,2.9rem);margin-bottom:16px}
+  .section-head p{color:var(--muted);font-size:1.05rem}
+
+  /* ABOUT */
+  .about{background:var(--cream)}
+  .about-grid{display:grid;grid-template-columns:1.05fr 1fr;gap:60px;align-items:center}
+  .about-text h2{font-size:clamp(2rem,4vw,2.8rem);margin-bottom:20px}
+  .about-text p{color:var(--muted);margin-bottom:18px;font-size:1.05rem}
+  .about-img{position:relative;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);aspect-ratio:4/5;background:linear-gradient(140deg,#6a7d63,#3a4a37)}
+  .about-img img{width:100%;height:100%;object-fit:cover}
+  .stat-row{display:flex;gap:34px;margin-top:28px;flex-wrap:wrap}
+  .stat b{display:block;font-family:"Fraunces",serif;font-size:2rem;color:var(--forest);line-height:1}
+  .stat span{font-size:.85rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
+
+  /* AMENITIES */
+  .amenities{background:var(--sand)}
+  .amenity-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+  .amenity{background:var(--cream);border-radius:14px;padding:26px 22px;transition:.25s ease}
+  .amenity:hover{transform:translateY(-4px);box-shadow:var(--shadow)}
+  .amenity svg{width:30px;height:30px;stroke:var(--amber);stroke-width:1.6;fill:none;margin-bottom:14px}
+  .amenity h3{font-size:1.05rem;margin-bottom:5px;font-weight:600}
+  .amenity p{font-size:.88rem;color:var(--muted)}
+
+  /* GALLERY */
+  .gallery{background:var(--cream)}
+  .gallery-grid{display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:200px;gap:14px}
+  .gallery-grid figure{overflow:hidden;border-radius:12px;cursor:pointer;position:relative;background:linear-gradient(140deg,#6a7d63,#3a4a37)}
+  .gallery-grid figure.tall{grid-row:span 2}
+  .gallery-grid figure.wide{grid-column:span 2}
+  .gallery-grid img{width:100%;height:100%;object-fit:cover;transition:transform .5s ease}
+  .gallery-grid figure:hover img{transform:scale(1.06)}
+  .gallery-grid figure::after{content:"";position:absolute;inset:0;background:rgba(38,32,25,0);transition:.3s}
+  .gallery-grid figure:hover::after{background:rgba(38,32,25,.12)}
+
+  /* WHY DIRECT */
+  .direct{background:var(--forest);color:var(--cream)}
+  .direct .section-head h2{color:var(--cream)}
+  .direct .section-head p{color:rgba(247,242,233,.8)}
+  .direct-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:30px}
+  .direct-card{background:rgba(247,242,233,.06);border:1px solid rgba(247,242,233,.14);border-radius:var(--radius);padding:34px 28px;text-align:center}
+  .direct-card svg{width:34px;height:34px;stroke:var(--gold);stroke-width:1.6;fill:none;margin:0 auto 16px}
+  .direct-card h3{font-size:1.25rem;margin-bottom:10px}
+  .direct-card p{color:rgba(247,242,233,.82);font-size:.95rem}
+
+  /* BOOKING */
+  .booking{background:var(--sand)}
+  .booking-shell{display:grid;grid-template-columns:1fr 1.1fr;gap:50px;align-items:start}
+  .cal-panel{background:var(--cream);border-radius:var(--radius);padding:30px;box-shadow:var(--shadow)}
+  .cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+  .cal-head h3{font-size:1.3rem}
+  .cal-nav{display:flex;gap:8px}
+  .cal-nav button{width:36px;height:36px;border-radius:50%;border:1px solid var(--sand);background:var(--cream);cursor:pointer;font-size:1.1rem;color:var(--forest);transition:.2s}
+  .cal-nav button:hover{background:var(--forest);color:var(--cream)}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;text-align:center}
+  .cal-dow{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;padding:6px 0}
+  .cal-day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:9px;font-size:.9rem;font-weight:500}
+  .cal-day.avail{background:#eef3ea;color:var(--forest)}
+  .cal-day.booked{background:repeating-linear-gradient(45deg,#e3d9c8,#e3d9c8 4px,#d8ccb7 4px,#d8ccb7 8px);color:#a89878;text-decoration:line-through}
+  .cal-day.past{color:#c9c1b3}
+  .cal-day.empty{background:none}
+  .cal-kicker{font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--amber);
+              font-weight:600;margin-bottom:14px}
+  .cal-legend{display:flex;gap:20px;margin-top:18px;font-size:.82rem;color:var(--muted);flex-wrap:wrap}
+  .cal-min{display:flex;align-items:center;gap:7px}
+  .cal-day{position:relative}
+  .cal-day .min{position:absolute;top:2px;right:3px;font-size:.58rem;font-style:normal;
+                font-weight:700;color:var(--amber);line-height:1}
+  .legend-min{position:static;font-size:.7rem;font-style:normal;font-weight:700;color:var(--amber)}
+  .cal-day.nocheckin{background:#eef3ea;color:#9fae97;
+       background-image:repeating-linear-gradient(45deg,transparent,transparent 5px,rgba(122,142,112,.28) 5px,rgba(122,142,112,.28) 6px)}
+  .swatch.nocheck{background:#eef3ea;
+       background-image:repeating-linear-gradient(45deg,transparent,transparent 3px,rgba(122,142,112,.45) 3px,rgba(122,142,112,.45) 4px)}
+  .cal-legend span{display:flex;align-items:center;gap:7px}
+  .swatch{width:14px;height:14px;border-radius:4px;display:inline-block}
+  .swatch.avail{background:#eef3ea;border:1px solid #cfe0c6}
+  .swatch.booked{background:repeating-linear-gradient(45deg,#e3d9c8,#e3d9c8 3px,#d8ccb7 3px,#d8ccb7 6px)}
+  .cal-note{font-size:.8rem;color:var(--muted);margin-top:14px;font-style:italic}
+  .book-panel h2{font-size:clamp(1.9rem,3.5vw,2.5rem);margin-bottom:14px}
+  .book-panel>p{color:var(--muted);margin-bottom:24px}
+  #hospitable-widget{min-height:200px;border-radius:var(--radius);overflow:hidden}
+  .widget-placeholder{background:var(--cream);border:2px dashed #cdbfa6;border-radius:var(--radius);padding:40px 30px;text-align:center;color:var(--muted)}
+  .widget-placeholder h3{color:var(--forest);margin-bottom:10px;font-size:1.2rem}
+  .widget-placeholder .btn{margin-top:18px}
+
+  /* REVIEWS */
+  .reviews{background:var(--cream)}
+  .review-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+  .review{background:var(--sand);border-radius:var(--radius);padding:30px}
+  .review .stars{font-size:1rem;margin-bottom:12px}
+  .review p{font-size:.98rem;margin-bottom:18px;color:var(--ink)}
+  .review .who{display:flex;align-items:center;gap:12px}
+  .review .avatar{width:42px;height:42px;border-radius:50%;background:var(--moss);color:var(--cream);display:flex;align-items:center;justify-content:center;font-weight:600;font-family:"Fraunces",serif}
+  .review .who b{display:block;font-size:.95rem}
+  .review .who span{font-size:.8rem;color:var(--muted)}
+
+  /* LOCATION */
+  .location{background:var(--sand)}
+  .loc-grid{display:grid;grid-template-columns:1fr 1fr;gap:50px;align-items:center}
+  .loc-list{list-style:none}
+  .loc-list li{display:flex;gap:14px;padding:16px 0;border-bottom:1px solid rgba(38,32,25,.1)}
+  .loc-list li svg{width:22px;height:22px;stroke:var(--amber);stroke-width:1.6;fill:none;flex-shrink:0;margin-top:3px}
+  .loc-list b{display:block;font-size:1.02rem}
+  .loc-list span{font-size:.88rem;color:var(--muted)}
+  .map-plot{position:relative;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);
+            aspect-ratio:1/1;margin:0;background:#e8e0d0}
+  .map-plot img{width:100%;height:100%;object-fit:cover;display:block}
+  .map-pins{position:absolute;inset:0}
+  /* The pin is a zero-size anchor sitting exactly on the coordinate. The star is
+     centred on it and the label hangs off to one side, so the star always marks
+     the real location. (Centring the whole star+label box instead would push the
+     star off the point by half the label width, which is about a mile here.) */
+  .pin{position:absolute;width:0;height:0}
+  .pin .star{position:absolute;left:0;top:0;transform:translate(-50%,-50%);
+             width:24px;height:24px;fill:#d9482b;stroke:#fff;stroke-width:2;stroke-linejoin:round;
+             paint-order:stroke;overflow:visible;filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))}
+  .pin.home .star{width:36px;height:36px;fill:var(--gold);stroke-width:2.2;
+                  filter:drop-shadow(0 2px 4px rgba(0,0,0,.45))}
+  .pin .tag{position:absolute;white-space:nowrap;background:#fff;
+            border-radius:10px;padding:4px 10px;font-size:.72rem;line-height:1.3;
+            color:var(--ink);box-shadow:0 2px 8px rgba(38,32,25,.25);text-align:left;
+            border:1px solid rgba(38,32,25,.08)}
+  .pin .tag b{display:block;font-size:.78rem;font-weight:700;color:var(--forest)}
+  .pin .tag span{color:var(--muted);font-size:.67rem}
+  .pin.home .tag{background:var(--forest);color:var(--cream);text-align:center;border-color:transparent}
+  .pin.home .tag b{color:var(--cream)}
+  .pin.home .tag span{color:var(--gold)}
+  .pin[data-side="right"]  .tag{left:17px;top:0;transform:translateY(-50%)}
+  .pin[data-side="left"]   .tag{right:17px;top:0;transform:translateY(-50%)}
+  .pin[data-side="top"]    .tag{bottom:17px;left:0;transform:translateX(-50%)}
+  .pin[data-side="bottom"] .tag{top:17px;left:0;transform:translateX(-50%)}
+  .pin.home[data-side="right"]  .tag{left:24px}
+  .pin.home[data-side="left"]   .tag{right:24px}
+  .pin.home[data-side="top"]    .tag{bottom:24px}
+  .pin.home[data-side="bottom"] .tag{top:24px}
+  .map-credit{position:absolute;right:8px;bottom:7px;font-size:.6rem;color:var(--muted);
+              background:rgba(247,242,233,.8);padding:2px 7px;border-radius:100px}
+  .map-directions{position:absolute;left:14px;bottom:12px;background:var(--forest);color:var(--cream);
+                  font-size:.78rem;font-weight:500;padding:9px 16px;border-radius:100px;
+                  box-shadow:0 3px 12px rgba(38,32,25,.3);transition:.2s}
+  .map-directions:hover{background:var(--amber)}
+
+  /* FAQ */
+  .faq{background:var(--cream)}
+  .faq-wrap{max-width:760px;margin:0 auto}
+  .faq-item{border-bottom:1px solid var(--sand)}
+  .faq-q{width:100%;text-align:left;background:none;border:none;cursor:pointer;padding:22px 0;font-family:"Fraunces",serif;font-size:1.2rem;color:var(--ink);display:flex;justify-content:space-between;align-items:center;gap:20px}
+  .faq-q span{font-size:1.6rem;color:var(--amber);transition:transform .3s;line-height:1}
+  .faq-q[aria-expanded="true"] span{transform:rotate(45deg)}
+  .faq-a{max-height:0;overflow:hidden;transition:max-height .35s ease;color:var(--muted)}
+  .faq-a p{padding-bottom:22px}
+
+  /* FOOTER */
+  footer{background:var(--forest);color:var(--cream);padding:70px 0 34px}
+  .foot-grid{display:grid;grid-template-columns:2fr 1fr 1fr;gap:40px;margin-bottom:48px}
+  footer .brand{color:var(--cream);font-size:1.6rem;display:block;margin-bottom:14px}
+  footer p{color:rgba(247,242,233,.78);font-size:.95rem;max-width:36ch}
+  footer h4{font-size:.8rem;text-transform:uppercase;letter-spacing:.16em;color:var(--gold);margin-bottom:18px}
+  footer ul{list-style:none}
+  footer ul li{margin-bottom:11px}
+  footer ul a{color:rgba(247,242,233,.82);font-size:.92rem}
+  footer ul a:hover{color:var(--gold)}
+  .foot-owner{margin-top:10px;font-size:.85rem;color:rgba(247,242,233,.66)}
+  .foot-legal{margin-top:22px;display:grid;gap:8px}
+  .foot-legal p{max-width:none;font-size:.74rem;line-height:1.6;color:rgba(247,242,233,.52)}
+  .foot-legal b{color:rgba(247,242,233,.72);font-weight:600}
+  .foot-bottom{border-top:1px solid rgba(247,242,233,.16);padding-top:24px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;font-size:.85rem;color:rgba(247,242,233,.6)}
+
+  /* LIGHTBOX */
+  .lightbox{position:fixed;inset:0;z-index:100;background:rgba(20,16,12,.92);display:none;align-items:center;justify-content:center;padding:30px}
+  .lightbox.open{display:flex}
+  .lightbox img{max-width:90vw;max-height:88vh;border-radius:10px;box-shadow:0 30px 80px rgba(0,0,0,.6)}
+  .lightbox .close{position:absolute;top:24px;right:30px;font-size:2.4rem;color:var(--cream);cursor:pointer;line-height:1}
+  .lightbox .lb-nav{position:absolute;top:50%;transform:translateY(-50%);font-size:2.6rem;color:var(--cream);cursor:pointer;padding:0 24px;user-select:none}
+  .lightbox .lb-prev{left:0}.lightbox .lb-next{right:0}
+
+  /* SCROLL REVEAL */
+  .reveal{opacity:0;transform:translateY(28px);transition:opacity .7s ease,transform .7s ease}
+  .reveal.in{opacity:1;transform:none}
+
+  /* RESPONSIVE */
+  .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  /* PLAN YOUR TRIP */
+  .plan{background:var(--sand)}
+  .plan-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:40px;align-items:start}
+  .plan-group h3{font-size:.8rem;text-transform:uppercase;letter-spacing:.16em;color:var(--amber);margin-bottom:4px}
+  .plan-group ul{list-style:none}
+  .plan-group h3{padding-bottom:12px;border-bottom:2px solid var(--gold)}
+  .plan-group li{padding:16px 0;border-bottom:1px solid rgba(38,32,25,.2)}
+  .plan-group li:last-child{border-bottom:none}
+  .plan-group a{font-family:"Fraunces",Georgia,serif;font-size:1.14rem;font-weight:600;color:var(--forest);
+                text-decoration:none;display:inline-flex;align-items:baseline;gap:6px;line-height:1.3}
+  .plan-group a:hover,.plan-group a:focus-visible{color:var(--amber);text-decoration:underline}
+  .plan-group a .ext{font-size:.8em;color:var(--amber)}
+  .plan-group span.d{display:block;font-size:.9rem;color:var(--muted);margin-top:4px}
+
+  @media(max-width:560px){
+    /* Phone-width map: keep every label, but name only, so they never collide. */
+    .pin .tag{padding:2px 7px;border-radius:8px}
+    .pin .tag b{font-size:.66rem}
+    .pin:not(.home) .tag span{display:none}
+    .pin.home .tag span{font-size:.6rem}
+    .pin .star{width:19px;height:19px}
+    .pin.home .star{width:28px;height:28px}
+    .pin[data-side="right"] .tag{left:13px} .pin[data-side="left"] .tag{right:13px}
+    .pin[data-side="top"] .tag{bottom:13px} .pin[data-side="bottom"] .tag{top:13px}
+  }
+  @media(max-width:900px){
+    .nav-links{position:fixed;inset:0 0 0 auto;width:74%;max-width:320px;background:var(--forest);flex-direction:column;justify-content:center;gap:26px;transform:translateX(100%);transition:.35s ease;padding:40px}
+    .nav-links.open{transform:none}
+    .nav-links a{color:var(--cream)!important;font-size:1.1rem}
+    .nav-toggle{display:flex}
+    .about-grid,.booking-shell,.loc-grid,.plan-grid{grid-template-columns:1fr;gap:36px}
+    .amenity-grid{grid-template-columns:repeat(2,1fr)}
+
+    .direct-grid,.review-grid{grid-template-columns:1fr}
+    .gallery-grid{grid-template-columns:repeat(2,1fr);grid-auto-rows:160px}
+    .gallery-grid figure.wide{grid-column:span 2}
+    .foot-grid{grid-template-columns:1fr;gap:30px}
+    section{padding:72px 0}
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="nav">
+  <a href="#top" class="brand" id="brandName">Firefly Cottage</a>
+  <div class="nav-links" id="navLinks">
+    <a href="#about">The Cabin</a>
+    <a href="#amenities">Amenities</a>
+    <a href="#gallery">Gallery</a>
+    <a href="#location">Location</a>
+    <a href="#book" class="btn btn-gold navbook">Book Direct</a>
+  </div>
+  <button class="nav-toggle" id="navToggle" aria-label="Menu"><span></span><span></span><span></span></button>
+</nav>
+
+<!-- HERO -->
+<header class="hero" id="top">
+  <div class="hero-bg-fallback"></div>
+  <img class="hero-img" id="heroImg" alt="Smoky Mountain cabin at golden hour" />
+  <div class="hero-content">
+    <p class="eyebrow">Pigeon Forge · Smoky Mountains, TN</p>
+    <h1 id="heroTitle">Where Smoky Mountain evenings glow.</h1>
+    <p class="lede" id="heroLede">A charming Pigeon Forge cottage tucked in the trees, with a private hot tub, mountain air, and the Smokies at your doorstep. Book direct with the owner and skip the fees.</p>
+    <div class="hero-cta">
+      <a href="#book" class="btn btn-gold">Check Availability</a>
+      <a href="#about" class="btn btn-ghost">Explore the Cabin</a>
+    </div>
+  </div>
+  <div class="hero-meta">
+    <div class="wrap">
+      <div><b id="metaGuests">8</b> Guests</div>
+      <div><b id="metaBeds">3</b> Bedrooms</div>
+      <div><b id="metaBaths">2</b> Baths</div>
+      <div><b class="stars" id="metaRating">★ 4.99</b> <span id="metaHostBadge">Superhost</span></div>
+    </div>
+  </div>
+</header>
+
+<!-- TRUST -->
+<div class="trust">
+  <div class="wrap">
+    <div class="item"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2l2.4 7.4H22l-6 4.5 2.3 7.1-6.3-4.6L5.7 21l2.3-7.1-6-4.5h7.6z" stroke-width="1.5"/></svg><span id="trustRating"><b>4.99</b> rating · 97 reviews</span></div>
+    <div class="item"><svg viewBox="0 0 24 24" fill="none"><path d="M9 12l2 2 4-4" stroke-width="1.7"/><circle cx="12" cy="12" r="9" stroke-width="1.5"/></svg><span>Airbnb Superhost</span></div>
+    <div class="item"><svg viewBox="0 0 24 24" fill="none"><path d="M3 10l9-6 9 6v9a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1z" stroke-width="1.5"/></svg><span>Self check-in</span></div>
+    <div class="item"><svg viewBox="0 0 24 24" fill="none"><path d="M12 1v22M5 8h9a3 3 0 010 6H7a3 3 0 000 6h11" stroke-width="1.5"/></svg><span>Book direct & save ~14%</span></div>
+  </div>
+</div>
+
+<!-- ABOUT -->
+<section class="about" id="about">
+  <div class="wrap about-grid reveal">
+    <div class="about-text">
+      <p class="eyebrow">Welcome to Firefly Cottage</p>
+      <h2 id="aboutHeading">Where Smoky Mountain evenings glow.</h2>
+      <p id="aboutP1">Tucked in the trees just minutes from the Parkway, Firefly Cottage pairs a full renovation with that slow Smoky Mountain pace. Big windows pull the forest inside, the deck looks straight out over the ridgeline, and the hot tub waits for the moment the stars, and on early-summer nights the fireflies, come out.</p>
+      <p id="aboutP2">Cook a big breakfast in the renovated kitchen, lose an afternoon to the arcade and air hockey up in the game loft, then gather around the fire pit as the light fades. Guests tell us the same thing over and over: it is close to everything and you still cannot see a single neighbor from the porch.</p>
+      <div class="stat-row">
+        <div class="stat"><b>2</b><span>Bedrooms</span></div>
+        <div class="stat"><b>2</b><span>Baths</span></div>
+        <div class="stat"><b>6</b><span>Sleeps</span></div>
+        <div class="stat"><b>3</b><span>Beds</span></div>
+        <div class="stat"><b>5</b><span>Min to Parkway</span></div>
+      </div>
+    </div>
+    <div class="about-img"><img id="aboutImg" alt="Cabin interior" /></div>
+  </div>
+</section>
+
+<!-- AMENITIES -->
+<section class="amenities" id="amenities">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <p class="eyebrow">Everything you need</p>
+      <h2>Thoughtfully stocked, comfortably yours</h2>
+      <p>The details that turn a stay into a getaway, all included.</p>
+    </div>
+    <div class="amenity-grid reveal" id="amenityGrid"><!-- injected by JS --></div>
+  </div>
+</section>
+
+<!-- GALLERY -->
+<section class="gallery" id="gallery">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <p class="eyebrow">Take a look</p>
+      <h2>A peek inside</h2>
+      <p>Tap any photo to view it full screen.</p>
+    </div>
+    <div class="gallery-grid reveal" id="galleryGrid"><!-- injected by JS --></div>
+  </div>
+</section>
+
+<!-- WHY DIRECT -->
+<section class="direct">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <p class="eyebrow" style="color:var(--gold)">Smartest way to stay</p>
+      <h2>Why book direct?</h2>
+      <p>Same cabin, same calendar, better deal. You get me, the actual owner, on the other end.</p>
+    </div>
+    <div class="direct-grid reveal">
+      <div class="direct-card">
+        <svg viewBox="0 0 24 24"><path d="M12 1v22M5 8h9a3 3 0 010 6H7a3 3 0 000 6h11" stroke-width="1.5"/></svg>
+        <h3>No service fees</h3>
+        <p>Booking platforms tack on 12 to 16% in guest fees. Book here and that money stays in your pocket.</p>
+      </div>
+      <div class="direct-card">
+        <svg viewBox="0 0 24 24"><path d="M8 12h8M8 8h8M8 16h5" stroke-width="1.5"/><rect x="3" y="3" width="18" height="18" rx="3" stroke-width="1.5"/></svg>
+        <h3>Direct to the owner</h3>
+        <p>Questions, early check-in, local tips, you're talking to me, not a call center. Faster answers, real flexibility.</p>
+      </div>
+      <div class="direct-card">
+        <svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4" stroke-width="1.7"/><circle cx="12" cy="12" r="9" stroke-width="1.5"/></svg>
+        <h3>Secure & instant</h3>
+        <p>Real-time availability and encrypted card payment. Your dates lock in the second you book, same protection as the big sites.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- BOOKING -->
+<section class="booking" id="book">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <p class="eyebrow">Reserve your dates</p>
+      <h2>Check availability & book</h2>
+      <p>Live calendar, instant confirmation, secure payment.</p>
+    </div>
+    <div class="booking-shell reveal">
+      <!-- Availability calendar (read-only, reflects Airbnb) -->
+      <div class="cal-panel">
+        <p class="cal-kicker">Availability at a glance</p>
+        <div class="cal-head">
+          <h3 id="calMonthLabel">Month</h3>
+          <div class="cal-nav">
+            <button id="calPrev" aria-label="Previous month">‹</button>
+            <button id="calNext" aria-label="Next month">›</button>
+          </div>
+        </div>
+        <div class="cal-grid" id="calDow"></div>
+        <div class="cal-grid" id="calBody" style="margin-top:6px"></div>
+        <div class="cal-legend">
+          <span><i class="swatch avail"></i> Open</span>
+          <span><i class="swatch booked"></i> Booked</span>
+          <span><i class="swatch nocheck"></i> No arrivals</span>
+          <span class="cal-min"><i class="min legend-min">3</i> Minimum nights</span>
+        </div>
+        <p class="cal-note" id="calNote">This shows which nights are already taken. Minimum stay varies by date, so choose your dates in the booking panel to see the exact minimum, price and total.</p>
+      </div>
+      <!-- Booking widget -->
+      <div class="book-panel">
+        <h2>Reserve direct</h2>
+        <p id="bookIntro">Pick your dates here to see the minimum stay for those nights, your full total, and to book instantly. Payment is secured by Stripe and your reservation blocks the calendar the moment it goes through.</p>
+        <div id="hospitable-widget">
+          <!-- Hospitable embed code goes here. Until then, this graceful placeholder shows. -->
+          <div class="widget-placeholder" id="widgetPlaceholder">
+            <h3>Online booking opens soon</h3>
+            <p>Direct booking on this site is almost ready. Until it opens, you can check dates and reserve Firefly Cottage on Airbnb.</p>
+            <a href="#" class="btn btn-primary" id="fallbackBookBtn" target="_blank" rel="noopener">Check dates on Airbnb</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- REVIEWS -->
+<section class="reviews" id="reviews">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <p class="eyebrow">Guest love</p>
+      <h2 id="reviewsHeading">Rated 4.99 by 97 guests</h2>
+      <p>A few words from folks who've made the cabin their basecamp.</p>
+    </div>
+    <div class="review-grid reveal" id="reviewGrid"><!-- injected by JS --></div>
+  </div>
+</section>
+
+<!-- LOCATION -->
+<section class="location" id="location">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <p class="eyebrow">The neighborhood</p>
+      <h2>Close to everything, away from it all</h2>
+    </div>
+    <div class="loc-grid reveal">
+      <ul class="loc-list" id="locList"><!-- injected by JS --></ul>
+      <figure class="map-plot" id="mapPlot">
+        <img id="mapImg" alt="Map of Pigeon Forge showing Firefly Cottage and nearby attractions" loading="lazy" />
+        <div class="map-pins" id="mapPins"><!-- injected by JS --></div>
+        <figcaption class="map-credit">Map data &copy; OpenStreetMap contributors</figcaption>
+        <a class="map-directions" id="mapDirections" target="_blank" rel="noopener">Get directions</a>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="faq">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <p class="eyebrow">Good to know</p>
+      <h2>Frequently asked</h2>
+    </div>
+    <div class="faq-wrap reveal" id="faqWrap"><!-- injected by JS --></div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<section class="plan" id="plan">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <p class="eyebrow">Plan your trip</p>
+      <h2>Things to book nearby</h2>
+      <p>Grab tickets ahead of time for the Smokies' favorites. Each link opens the attraction's official site.</p>
+    </div>
+    <div class="plan-grid reveal" id="planGrid"><!-- injected by JS --></div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <span class="brand" id="footBrand">Firefly Cottage</span>
+        <p>A family-owned luxury cabin in the heart of the Smoky Mountains. Book direct, stay longer, spend less.</p>
+        <p class="foot-owner">Owned and operated by <span class="js-entity">MGB Investments LLC</span></p>
+      </div>
+      <div>
+        <h4>Explore</h4>
+        <ul>
+          <li><a href="#about">The Cabin</a></li>
+          <li><a href="#amenities">Amenities</a></li>
+          <li><a href="#gallery">Gallery</a></li>
+          <li><a href="#plan">Things to do</a></li>
+          <li><a href="#book">Book Direct</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Get in touch</h4>
+        <ul>
+          <li><a id="footEmail" href="#">hello@fireflycottagetn.com</a></li>
+          <li><a id="footPhone" href="#">(000) 000-0000</a></li>
+          <li><a id="footAirbnb" href="#" target="_blank" rel="noopener">View on Airbnb</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© <span id="footYear"></span> <span class="js-entity">MGB Investments LLC</span>. All rights reserved.</span>
+      <span>Book direct & save · Powered by Hospitable + Stripe</span>
+    </div>
+    <div class="foot-legal" aria-label="Disclaimer">
+      <p><b>Disclaimer.</b> <span id="footName">Firefly Cottage</span> is a short-term vacation rental owned and operated by <span class="js-entity">MGB Investments LLC</span>. We are not affiliated with, sponsored by, or endorsed by Airbnb, Vrbo, Hospitable, or any attraction linked on this site, and we are not responsible for third-party tickets, prices, or schedules. Airbnb, Superhost, and Guest Favorite are trademarks of Airbnb, Inc. Ratings reflect our Airbnb listing as of September 2026, and guest reviews shown here are excerpts of reviews posted on Airbnb.</p>
+      <p>Photos, descriptions, amenities, drive times, and the map are for general information only, are approximate, and may change without notice. The map shows the general area rather than the exact address, which is shared with confirmed guests. Rates, taxes, fees, availability, and minimum stays are confirmed at the time of booking.</p>
+      <p>Every reservation is subject to the rental agreement, house rules, and cancellation policy presented at booking. Guests use the hot tub, fire pit, grill, outdoor games, and grounds at their own risk, must supervise children at all times, and are responsible for the safety and conduct of everyone in their party. The cabin sits in a mountain area with wildlife and roads that can be steep or icy in winter. Travel insurance is recommended.</p>
+    </div>
+  </div>
+</footer>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox">
+  <span class="close" id="lbClose">×</span>
+  <span class="lb-nav lb-prev" id="lbPrev">‹</span>
+  <img id="lbImg" alt="" />
+  <span class="lb-nav lb-next" id="lbNext">›</span>
+</div>
+
+<script>
+/* ============================================================
+   CONFIG: EDIT EVERYTHING HERE. This is the only block
+   you need to touch to make the site yours.
+   ============================================================ */
+const CONFIG = {
+  // --- Identity ---  (verified against Airbnb listing 1360985081998392759 on 09/11/2026)
+  propertyName: "Firefly Cottage",
+  legalEntity: "MGB Investments LLC",   // owner of record, shown in footer, copyright and disclaimer
+  heroTitle: "Where Smoky Mountain evenings glow.",
+  heroLede: "A newly renovated cabin tucked in the trees above Pigeon Forge, with a private hot tub, a fire pit under the stars, and a game loft nobody wants to leave. Sleeps 6, five minutes from the Parkway. Book direct with the owner and skip the booking fees.",
+  location: "Pigeon Forge · Smoky Mountains, TN",
+
+  // --- Quick stats (hero strip) ---  confirmed from the live listing
+  guests: 6, bedrooms: 2, beds: 3, baths: 2,
+
+  // --- Social proof ---  confirmed from the live listing 09/11/2026
+  rating: "4.99",
+  reviewCount: 97,
+  hostBadge: "Superhost · Guest Favorite",
+
+  // --- Contact ---
+  // TODO (Meredith): hello@ works once fireflycottagetn.com is registered and a
+  // free forward is set up at the registrar. Until then, swap in a real inbox.
+  email: "hello@fireflycottagetn.com",
+  phone: "",   // leave "" to hide the phone line entirely (no fake numbers on a live site)
+  airbnbListingUrl: "https://www.airbnb.com/rooms/1360985081998392759",
+
+  // --- BOOKING ENGINE (Hospitable) ---
+  // After you set up Hospitable Direct (see SETUP guide), paste your
+  // public booking page URL here. The "Inquire/Book" button will point to it
+  // until you paste the full embed widget into #hospitable-widget in the HTML.
+  hospitableBookingUrl: "",   // e.g. "https://booking.hospitable.com/your-property-slug"
+
+  // --- AVAILABILITY CALENDAR ---
+  // calendar.json holds availability plus the per-date minimum stay. It is rebuilt from the
+  // Hospitable API by the deploy workflow using the HOSPITABLE_TOKEN repository secret.
+  // Hospitable-backed calendar: returns availability AND the per-date minimum stay.
+  // The old /.netlify/functions/ical only knew blocked dates, so it could imply that
+  // two open nights were bookable inside a 4-night-minimum week. Set "" for demo mode.
+  availabilityApi: "calendar.json",   // rebuilt from Hospitable every 6 hours by .github/workflows/deploy.yml
+  calendarMaxAgeHours: 72,             // older data is treated as unavailable rather than shown as fact
+
+  // --- MAP ---
+  // Hand-plotted local map. Coordinates geocoded 09/11/2026; x/y are percentages of
+  // images/map-pigeonforge.jpg. The cottage star sits on the New Pioneer Trail area,
+  // not the driveway: Airbnb only reveals the exact address after booking, and a public
+  // pin on the front door of an empty cabin is a security risk.
+  mapQuery: "Pigeon Forge, TN 37863",   // used for the "Get directions" link only
+  mapImage: "images/map-pigeonforge.jpg",
+  mapPoints: [
+    {name:"Firefly Cottage",          x:40.06, y:39.36, note:"You are here", home:true, side:"bottom"},
+    {name:"The Parkway",              x:42.76, y:21.48, note:"Titanic & WonderWorks · 5 min",  side:"bottom"},
+    {name:"The Island",               x:33.96, y:11.62, note:"Ferris wheel · 10 min", side:"left"},
+    {name:"Dollywood",                x:54.63, y:16.97, note:"Theme park · 15 min",            side:"right"},
+    {name:"Gatlinburg",               x:66.14, y:69.83, note:"Anakeesta, Aquarium & SkyBridge · 20 min",  side:"left"},
+    {name:"Great Smoky Mountains NP", x:52.14, y:88.48, note:"Hiking & waterfalls · 25 min",   side:"top"},
+  ],
+
+  // --- IMAGES ---  real listing photos, pulled 09/11/2026
+  heroImage: "images/hero.jpg",
+  aboutImage: "images/about.jpg",
+  gallery: [
+    {src:"images/gallery-1.jpg", cls:"wide"},   // living room + gas fireplace
+    {src:"images/gallery-2.jpg", cls:""},       // renovated kitchen
+    {src:"images/gallery-3.jpg", cls:"tall"},   // king master suite
+    {src:"images/gallery-4.jpg", cls:""},       // hot tub with mountain view
+    {src:"images/gallery-5.jpg", cls:""},       // game loft arcade
+    {src:"images/gallery-7.jpg", cls:""},       // dining with a view
+    {src:"images/gallery-6.jpg", cls:"wide"},   // cabin exterior at sunset
+    {src:"images/gallery-8.jpg", cls:"wide"},   // queen-over-queen bunk loft
+  ],
+
+  // --- AMENITIES ---  confirmed from the live listing
+  amenities: [
+    {icon:"hottub", title:"Private Hot Tub", desc:"Mountain views, open year-round"},
+    {icon:"fire", title:"Fire Pit & Gas Grill", desc:"S'mores and BBQ on the deck"},
+    {icon:"game", title:"Game Loft", desc:"Arcade, air hockey & basketball"},
+    {icon:"tv", title:"Projector & Smart TVs", desc:"65-inch HDTV, Roku streaming"},
+    {icon:"kitchen", title:"Renovated Kitchen", desc:"New appliances"},
+    {icon:"wifi", title:"Starlink Wi-Fi", desc:"168 Mbps, work-friendly"},
+    {icon:"mountain", title:"Mountain Views", desc:"Private and wooded, neighbors out of sight"},
+    {icon:"lock", title:"Self Check-In", desc:"Smart lock, code sent 3 days ahead"},
+  ],
+
+  // --- REVIEWS ---  real guest reviews from the Airbnb listing, pulled 09/11/2026
+  reviews: [
+    {stars:5, text:"The view from the balcony was breathtaking. I sat outside with coffee feeling so peaceful. The cabin gives you so much privacy, we couldn't see any neighbors from the driveway, cabin or porch. I loved everything from the location, privacy, views, cleanliness to Meredith and how responsive she was.", name:"Shaina", trip:"Aston Township, PA · Sep 2026"},
+    {stars:5, text:"Meredith was a wonderful host. Her home was immaculate just as described, with lots of options for relaxing. The short commute to Pigeon Forge and Gatlinburg makes this a perfect spot for someone looking to experience everything these towns have to offer. Ten out of ten would recommend!", name:"Tyler", trip:"Stayed a few nights · Sep 2026"},
+    {stars:5, text:"We LOVED this Airbnb! It was a gorgeous retreat close to the Smokies. Beautiful home, gorgeous setting, comfortable place, well decorated, very responsive host. Fantastic home!", name:"Danny", trip:"Minneapolis, MN · Aug 2026"},
+  ],
+
+  // --- LOCATION HIGHLIGHTS ---
+  nearby: [
+    {title:"The Parkway", desc:"Shops, dining & shows · 5 min"},
+    {title:"The Island", desc:"Ferris wheel & dining · 10 min"},
+    {title:"Dollywood", desc:"Theme park & shows · 15 min"},
+    {title:"Gatlinburg", desc:"Downtown & SkyBridge · 20 min"},
+    {title:"Great Smoky Mountains NP", desc:"Hiking & waterfalls · 25 min"},
+  ],
+
+  // --- FAQ ---
+  // --- THINGS TO BOOK NEARBY ---  official ticket pages, each link checked 09/13/2026
+  attractions: [
+    {group:"Theme parks & shows", items:[
+      {name:"Dollywood", desc:"Rides, shows and Dollywood's Splash Country water park", url:"https://www.dollywood.com/tickets/"},
+      {name:"Dolly Parton's Stampede", desc:"Dinner and a live show", url:"https://dpstampede.com/"},
+      {name:"The Island in Pigeon Forge", desc:"Shops, restaurants and the giant Ferris wheel", url:"https://islandinpigeonforge.com/"},
+    ]},
+    {group:"Mountain views", items:[
+      {name:"Anakeesta", desc:"Treetop walkways and mountaintop views above Gatlinburg", url:"https://anakeesta.com/"},
+      {name:"Gatlinburg SkyPark", desc:"The SkyLift and SkyBridge over downtown Gatlinburg", url:"https://www.gatlinburgskypark.com/"},
+      {name:"Great Smoky Mountains National Park", desc:"Free to enter, but you need a parking tag. Most trailheads have no tag machines, so buy one before you go.", url:"https://www.nps.gov/grsm/planyourvisit/fees.htm"},
+    ]},
+    {group:"Rainy-day favorites", items:[
+      {name:"Ripley's Aquarium of the Smokies", desc:"Shark tunnel, penguins and hands-on exhibits", url:"https://www.ripleys.com/attractions/ripleys-aquarium-of-the-smokies"},
+      {name:"Titanic Museum", desc:"Walk through a replica of the ship, with real artifacts", url:"https://titanicattraction.com/pigeon-forge"},
+      {name:"WonderWorks", desc:"Hands-on science exhibits for curious kids", url:"https://www.wonderworksonline.com/pigeon-forge/"},
+      {name:"Alcatraz East", desc:"Crime history museum on the Parkway", url:"https://www.alcatrazeast.com/"},
+    ]},
+  ],
+
+  faq: [
+    {q:"How is booking direct different from Airbnb?", a:"Same cabin, same calendar, same host. You just skip the platform's guest service fee, usually 12 to 16% of the total. You book and pay securely here and deal directly with me as the owner."},
+    {q:"Is my payment secure?", a:"Yes. Payments are processed by Stripe with bank-level encryption. We never see or store your card details."},
+    {q:"What time is check-in and check-out?", a:"Self check-in from 4:00 PM, check-out by 10:00 AM. There's a smart lock on the door and your entry code arrives three days before you travel, so there's no office to stop at and no key to juggle."},
+    {q:"What's the cancellation policy?", a:"We use a Firm policy, the same one we run on Airbnb, so booking direct never costs you flexibility. Cancel at least 30 days before check-in and you get a full refund. Cancel between 7 and 30 days before check-in and you get 50% back for all nights. Inside 7 days the stay is non-refundable, which is why we always suggest travel insurance. You also get a free look: change your mind within 24 hours of booking and you get everything back, as long as you booked at least 7 days before check-in. For long stays of 28 nights or more, a full refund requires cancelling at least 30 days before check-in."},
+    {q:"Are pets allowed?", a:"We're not able to host pets at the cottage, which keeps it comfortable for guests with allergies. Service animals are always welcome."},
+    {q:"Is there a minimum stay?", a:"Yes, and it moves with the season rather than the day of the week. Most dates run a 3 or 4 night minimum, quieter shoulder weeks can drop to 2, and peak holiday weeks go up to 5. The calendar above shows the exact minimum on every open night, and a few major holiday dates are closed to arrivals so we can turn the cabin over properly."},
+    {q:"How many people can stay, and who can book?", a:"The cottage sleeps 6 across a king bed in the master and a queen-over-queen bunk in the game loft, with 2 full bathrooms. The booking guest needs to be 23 or older. The cottage is smoke-free and vape-free throughout."},
+    {q:"What about parking, laundry and Wi-Fi?", a:"Free on-site parking for up to 3 vehicles, a washer and dryer in the unit, and 168 Mbps Starlink internet, which is genuinely fast enough to work from. Note that the drive in follows mountain roads that can ice over in a hard freeze."},
+  ],
+};
+
+/* ============================================================
+   RENDER: you shouldn't need to edit below this line.
+   ============================================================ */
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+
+// SVG icon set for amenities
+const ICONS = {
+  hottub:'<path d="M4 13h16v5a3 3 0 01-3 3H7a3 3 0 01-3-3z" stroke-width="1.6"/><path d="M7 13V7a2 2 0 014 0M14 9c0-1 1-1 1-2s-1-1-1-2M17 9c0-1 1-1 1-2s-1-1-1-2" stroke-width="1.6"/>',
+  wifi:'<path d="M5 12.5a10 10 0 0114 0M8 16a5 5 0 018 0" stroke-width="1.6"/><circle cx="12" cy="19" r="1.2" fill="currentColor" stroke="none"/>',
+  kitchen:'<path d="M6 3v8M9 3v8M6 11h3v10M16 3c-1.5 0-2 4-2 7h4M16 3c1.5 0 2 4 2 7M16 10v11" stroke-width="1.6"/>',
+  fire:'<path d="M12 3c2 3 5 5 5 9a5 5 0 01-10 0c0-2 1-3 1-3 1 2 2 2 2 2 0-3 1-6 2-8z" stroke-width="1.6"/>',
+  tv:'<rect x="3" y="5" width="18" height="12" rx="2" stroke-width="1.6"/><path d="M8 21h8M12 17v4" stroke-width="1.6"/>',
+  mountain:'<path d="M3 20l6-11 4 6 2-3 6 8z" stroke-width="1.6"/>',
+  game:'<rect x="2" y="7" width="20" height="11" rx="5" stroke-width="1.6"/><path d="M7 11v3M5.5 12.5h3" stroke-width="1.6"/><circle cx="16" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="18.5" cy="14.5" r="1" fill="currentColor" stroke="none"/>',
+  lock:'<rect x="4" y="10" width="16" height="11" rx="2" stroke-width="1.6"/><path d="M8 10V7a4 4 0 018 0v3" stroke-width="1.6"/><circle cx="12" cy="15.5" r="1.3" stroke-width="1.4"/>',
+  parking:'<rect x="4" y="3" width="16" height="18" rx="2" stroke-width="1.6"/><path d="M9 17V7h3a3 3 0 010 6H9" stroke-width="1.6"/>',
+};
+
+function imgWithFallback(src, alt){
+  return `<img src="${src}" alt="${alt||''}" loading="lazy" onerror="this.style.display='none'">`;
+}
+
+// Identity
+$('#brandName').textContent = CONFIG.propertyName;
+$('#footBrand').textContent = CONFIG.propertyName;
+$('#footName').textContent = CONFIG.propertyName;
+document.querySelectorAll('.js-entity').forEach(el => el.textContent = CONFIG.legalEntity);
+$('#heroTitle').textContent = CONFIG.heroTitle;
+$('#heroLede').textContent = CONFIG.heroLede;
+$('.hero-content .eyebrow').textContent = CONFIG.location;
+$('#metaGuests').textContent = CONFIG.guests;
+$('#metaBeds').textContent = CONFIG.bedrooms;
+$('#metaBaths').textContent = CONFIG.baths;
+$('#footYear').textContent = '2026';
+document.title = CONFIG.propertyName + " · Book Direct";
+
+// Images
+$('#heroImg').src = CONFIG.heroImage;
+$('#heroImg').onerror = function(){ this.style.display='none'; };
+$('#aboutImg').src = CONFIG.aboutImage;
+$('#aboutImg').onerror = function(){ this.style.display='none'; };
+
+// Contact
+$('#footEmail').textContent = CONFIG.email;
+$('#footEmail').href = 'mailto:' + CONFIG.email;
+if(CONFIG.phone){
+  $('#footPhone').textContent = CONFIG.phone;
+  $('#footPhone').href = 'tel:' + CONFIG.phone.replace(/[^0-9+]/g,'');
+} else {
+  $('#footPhone').closest('li').remove();   // no phone yet: hide the line rather than show a placeholder
+}
+
+// Social proof (single source of truth = CONFIG)
+$('#metaRating').textContent = '\u2605 ' + CONFIG.rating;
+$('#metaHostBadge').textContent = CONFIG.hostBadge;
+$('#trustRating').innerHTML = '<b>' + CONFIG.rating + '</b> rating \u00b7 ' + CONFIG.reviewCount + ' reviews';
+$('#reviewsHeading').textContent = 'Rated ' + CONFIG.rating + ' by ' + CONFIG.reviewCount + ' guests';
+$('#footAirbnb').href = CONFIG.airbnbListingUrl;
+
+// Amenities
+$('#amenityGrid').innerHTML = CONFIG.amenities.map(a => `
+  <div class="amenity">
+    <svg viewBox="0 0 24 24" fill="none">${ICONS[a.icon]||ICONS.mountain}</svg>
+    <h3>${a.title}</h3><p>${a.desc}</p>
+  </div>`).join('');
+
+// Gallery
+$('#galleryGrid').innerHTML = CONFIG.gallery.map((g,i) => `
+  <figure class="${g.cls}" data-i="${i}">${imgWithFallback(g.src,'Gallery photo '+(i+1))}</figure>`).join('');
+
+// Reviews
+$('#reviewGrid').innerHTML = CONFIG.reviews.map(r => `
+  <div class="review">
+    <div class="stars">${'★'.repeat(r.stars)}</div>
+    <p>"${r.text}"</p>
+    <div class="who"><div class="avatar">${r.name[0]}</div><div><b>${r.name}</b><span>${r.trip}</span></div></div>
+  </div>`).join('');
+
+// Location
+$('#locList').innerHTML = CONFIG.nearby.map(n => `
+  <li><svg viewBox="0 0 24 24" fill="none"><path d="M12 21s-7-6.2-7-11a7 7 0 0114 0c0 4.8-7 11-7 11z" stroke-width="1.6"/><circle cx="12" cy="10" r="2.4" stroke-width="1.6"/></svg>
+  <div><b>${n.title}</b><span>${n.desc}</span></div></li>`).join('');
+$('#mapImg').src = CONFIG.mapImage;
+const STAR = '<svg class="star" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.6l3 7.1 7.7.6-5.8 5 1.7 7.5L12 17.8 5.4 21.8l1.7-7.5-5.8-5 7.7-.6z"/></svg>';
+$('#mapPins').innerHTML = CONFIG.mapPoints.map(p => `
+  <div class="pin${p.home ? ' home' : ''}" data-side="${p.side}" style="left:${p.x}%;top:${p.y}%">
+    ${STAR}<div class="tag"><b>${p.name}</b><span>${p.note}</span></div>
+  </div>`).join('');
+$('#mapDirections').href = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(CONFIG.mapQuery);
+
+// Things to book nearby
+$('#planGrid').innerHTML = CONFIG.attractions.map(g => `
+  <div class="plan-group">
+    <h3>${g.group}</h3>
+    <ul>${g.items.map(a => `
+      <li><a href="${a.url}" target="_blank" rel="noopener">${a.name} <span class="ext" aria-hidden="true">&#8599;</span><span class="sr-only"> (opens official site)</span></a>
+      <span class="d">${a.desc}</span></li>`).join('')}
+    </ul>
+  </div>`).join('');
+
+// FAQ
+$('#faqWrap').innerHTML = CONFIG.faq.map(f => `
+  <div class="faq-item">
+    <button class="faq-q" aria-expanded="false">${f.q}<span>+</span></button>
+    <div class="faq-a"><p>${f.a}</p></div>
+  </div>`).join('');
+$$('.faq-q').forEach(q => q.addEventListener('click', () => {
+  const open = q.getAttribute('aria-expanded') === 'true';
+  $$('.faq-q').forEach(o => { o.setAttribute('aria-expanded','false'); o.nextElementSibling.style.maxHeight = null; });
+  if(!open){ q.setAttribute('aria-expanded','true'); const a=q.nextElementSibling; a.style.maxHeight = a.scrollHeight+'px'; }
+}));
+
+// Booking button / widget
+const bookUrl = CONFIG.hospitableBookingUrl || CONFIG.airbnbListingUrl;
+$('#fallbackBookBtn').href = bookUrl;
+$('#fallbackBookBtn').textContent = CONFIG.hospitableBookingUrl ? "Book your dates" : "Check dates on Airbnb";
+if(!CONFIG.hospitableBookingUrl){
+  // Until the Hospitable widget is live, don't promise instant booking or Stripe checkout.
+  $('#bookIntro').textContent = "Direct booking is opening soon. The calendar shows open nights and the minimum stay for each one.";
+  const ph = $('#widgetPlaceholder h3'); if(ph) ph.textContent = "Online booking opens soon";
+}
+
+/* ---------- NAV behavior ---------- */
+const nav = $('#nav');
+window.addEventListener('scroll', () => nav.classList.toggle('scrolled', window.scrollY > 60));
+$('#navToggle').addEventListener('click', () => $('#navLinks').classList.toggle('open'));
+$$('.nav-links a').forEach(a => a.addEventListener('click', () => $('#navLinks').classList.remove('open')));
+
+/* ---------- Scroll reveal ---------- */
+const io = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+}, {threshold:.14});
+$$('.reveal').forEach(el => io.observe(el));
+
+// Safety net: an IntersectionObserver that never fires (in-app browsers, some
+// webviews, aggressive privacy modes) would leave this page blank below the
+// hero. A scroll/resize fallback guarantees the content always shows up.
+function revealFallback(){
+  $$('.reveal:not(.in)').forEach(el => {
+    if(el.getBoundingClientRect().top < window.innerHeight * 0.92) el.classList.add('in');
+  });
+}
+window.addEventListener('scroll', revealFallback, {passive:true});
+window.addEventListener('resize', revealFallback);
+setTimeout(revealFallback, 1200);
+
+/* ---------- Lightbox ---------- */
+const lb = $('#lightbox'), lbImg = $('#lbImg');
+let lbIdx = 0;
+const galleryImgs = CONFIG.gallery.map(g => g.src);
+function openLb(i){ lbIdx=i; lbImg.src=galleryImgs[i]; lb.classList.add('open'); }
+function moveLb(d){ lbIdx=(lbIdx+d+galleryImgs.length)%galleryImgs.length; lbImg.src=galleryImgs[lbIdx]; }
+$$('#galleryGrid figure').forEach(f => f.addEventListener('click', () => openLb(+f.dataset.i)));
+$('#lbClose').addEventListener('click', () => lb.classList.remove('open'));
+$('#lbPrev').addEventListener('click', () => moveLb(-1));
+$('#lbNext').addEventListener('click', () => moveLb(1));
+lb.addEventListener('click', e => { if(e.target===lb) lb.classList.remove('open'); });
+document.addEventListener('keydown', e => {
+  if(!lb.classList.contains('open')) return;
+  if(e.key==='Escape') lb.classList.remove('open');
+  if(e.key==='ArrowLeft') moveLb(-1);
+  if(e.key==='ArrowRight') moveLb(1);
+});
+
+/* ---------- Availability calendar ---------- */
+const DOW = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+$('#calDow').innerHTML = DOW.map(d => `<div class="cal-dow">${d}</div>`).join('');
+let viewDate = new Date(); viewDate.setDate(1);
+// Fed by calendar.json, rebuilt from Hospitable by a scheduled GitHub Action. Hospitable is the system that
+// actually owns these rules. Showing the minimum on each open night is the whole
+// point: an open night is not automatically a bookable night.
+const CAL_NOTE_LIVE = "Availability and minimum stay sync live from our booking system. The small number on an open night is the minimum nights for a stay starting then.";
+const CAL_NOTE_DEMO = "Live availability is refreshing right now. Every date is confirmed when you book, including the minimum stay.";
+let bookedSet = new Set();   // 'YYYY-MM-DD' strings that are booked
+let minStay   = new Map();   // 'YYYY-MM-DD' -> minimum nights for a stay starting that day
+let noCheckIn = new Set();   // dates that cannot be an arrival day (holiday blackouts)
+
+function ymd(d){ return d.toISOString().slice(0,10); }
+
+function renderCal(){
+  const y = viewDate.getFullYear(), m = viewDate.getMonth();
+  $('#calMonthLabel').textContent = viewDate.toLocaleString('en-US',{month:'long',year:'numeric'});
+  const first = new Date(y,m,1).getDay();
+  const days = new Date(y,m+1,0).getDate();
+  const today = new Date(); today.setHours(0,0,0,0);
+  let cells = '';
+  for(let i=0;i<first;i++) cells += '<div class="cal-day empty"></div>';
+  for(let d=1; d<=days; d++){
+    const date = new Date(y,m,d);
+    const key = ymd(date);
+    let cls = 'avail', badge = '', title = '';
+    if(date < today){ cls = 'past'; }
+    else if(bookedSet.has(key)){ cls = 'booked'; title = 'Booked'; }
+    else if(noCheckIn.has(key)){ cls = 'avail nocheckin'; title = 'No arrivals this day'; }
+    else {
+      const n = minStay.get(key);
+      if(n > 1){ badge = `<i class="min">${n}</i>`; title = `${n}-night minimum`; }
+      else if(n === 1){ title = '1-night minimum'; }
+    }
+    cells += `<div class="cal-day ${cls}"${title ? ` title="${title}"` : ''}>${d}${badge}</div>`;
+  }
+  $('#calBody').innerHTML = cells;
+}
+$('#calPrev').addEventListener('click', () => { viewDate.setMonth(viewDate.getMonth()-1); renderCal(); });
+$('#calNext').addEventListener('click', () => { viewDate.setMonth(viewDate.getMonth()+1); renderCal(); });
+renderCal();
+
+// Pull booked ranges from the iCal function (if configured)
+async function loadAvailability(){
+  if(!CONFIG.availabilityApi){ $('#calNote').textContent = CAL_NOTE_DEMO; return; }
+  try{
+    const res = await fetch(CONFIG.availabilityApi);
+    if(!res.ok) throw new Error('status '+res.status);
+    // { configured: bool, days: [{date, open, min, noCheckIn}, ...] }
+    const data = await res.json();
+    const ageHours = data.generated_at ? (Date.now() - Date.parse(data.generated_at)) / 36e5 : Infinity;
+    if(!data.configured || !Array.isArray(data.days) || !data.days.length || ageHours > CONFIG.calendarMaxAgeHours){
+      $('#calNote').textContent = CAL_NOTE_DEMO; return;   // stale or missing: never show old bookings as fact
+    }
+    data.days.forEach(day => {
+      if(!day.open) bookedSet.add(day.date);
+      if(day.min)   minStay.set(day.date, day.min);
+      if(day.noCheckIn) noCheckIn.add(day.date);
+    });
+    $('#calNote').textContent = CAL_NOTE_LIVE;
+    renderCal();
+  }catch(err){
+    $('#calNote').textContent = CAL_NOTE_DEMO;
+  }
+}
+loadAvailability();
+</script>
+</body>
+</html>
